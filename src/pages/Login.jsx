@@ -1,5 +1,5 @@
 import axios from "axios";
-import React, {useEffect, useState} from "react";
+import React, {useState} from "react";
 import { useNavigate } from "react-router-dom";
 import lounge from '../assets/cigarLounge.jpg'
 
@@ -13,22 +13,11 @@ const Login = () => {
 
     const moveTo = useNavigate();
 
-    const backgroundStyle = {
-      backgroundImage: `url(${lounge})`,
-      backgroundSize: 'cover',
-      backgroundPosition: 'center',
-      backgroundRepeat: 'no-repeat',
-      height: '100vh',
-      filter: 'brightness(0.5)'
-    }
 
     const emailCheck = (email) => {
         const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         return regex.test(email);
         
-    }
-    const passwordCheck = (password) => {
-        return password.length >= 8;
     }
 
     const handleChange = (e) => {
@@ -42,15 +31,11 @@ const Login = () => {
 
         if (!emailCheck(loginInfo.email)) {
             setEmailClass('form-control is-invalid');
-            setLoading(false);
-            return;
-        }
-        setEmailClass("form-control is-valid");
-        if (!passwordCheck(loginInfo.password)) {
             setPasswordClass("form-control is-invalid");
             setLoading(false);
             return;
         }
+        setEmailClass("form-control is-valid");
         setPasswordClass("form-control is-valid");
         try {
             const res = await axios.post('http://localhost:3000/login', loginInfo);
@@ -73,60 +58,87 @@ const Login = () => {
     }
 
     return (
-      <div className="container-fluid p-0" style={backgroundStyle}>
-        <div className="d-flex justify-content-center">
-          <h1>login page</h1>
-        </div>
-        <div
-          className="container d-flex justify-content-center"
-          style={{ height: "80vh" }}
-        >
-          <form onSubmit={handleSubmit} className="align-self-center"
-          noValidate>
-            <div className="container">
-              {noErr && (
-                <div className="alert alert-danger" role="alert">
-                  Invalid email or password
-                </div>
-              )}
-              <label htmlFor="" className="form-label">
-                Email
-              </label>
-              <input
-                type="email"
-                className={emailClass}
-                onChange={handleChange}
-                name="email"
-                required
-                placeholder="Enter your email"
-              />
-            </div>
-            <div className="container">
-              <label htmlFor="" className="form-label">
-                Password
-              </label>
-              <input
-                type="password"
-                className={passwordClass}
-                onChange={handleChange}
-                name="password"
-                required
-                placeholder="Enter your password"
-              />
-            </div>
+      <div className="container-fluid p-0">
+        <div className="position-relative" style={{ height: "100vh" }}>
+          <div
+            className="position-absolute top-0 start-0 w-100 h-100"
+            style={{
+              backgroundImage: `url(${lounge})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+            }}
+          ></div>
 
-            <div className="d-flex justify-content-center p-3">
-              <button className="btn btn-primary" type="submit" disabled={loading}>
-                {loading ? 'Loggin in...' : 'Login'}
-              </button>
+          <div className="position-absolute top-0 start-0 w-100 h-100 bg-dark bg-opacity-50"></div>
+
+          <div className="position-relative p-4" style={{ zIndex: 2 }}>
+            <div className="d-flex justify-content-center">
+              <h1 className="text-light">Millionaire's Club</h1>
             </div>
-            <hr />
-            
-            <div className="text-center">
-                <div className="me-2">Don't have an account?</div>
-                <button className="btn btn-info" onClick={() => moveTo('/Signup')}>Sign Up</button>
+            <div
+              className="container d-flex justify-content-center"
+              style={{ height: "80vh" }}
+            >
+              <form
+                onSubmit={handleSubmit}
+                className="align-self-center"
+                noValidate
+              >
+                <div className="container">
+                  {noErr && (
+                  <div className="alert alert-danger p-2 mb-2" style={{width: '93%'}} role="alert">
+                      Invalid email or password
+                    </div>
+                  )}
+                  <label htmlFor="" className="form-label text-light">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    className={emailClass}
+                    onChange={handleChange}
+                    name="email"
+                    required
+                    placeholder="Enter your email"
+                  />
+                </div>
+                <div className="container">
+                  <label htmlFor="" className="form-label text-light">
+                    Password
+                  </label>
+                  <input
+                    type="password"
+                    className={passwordClass}
+                    onChange={handleChange}
+                    name="password"
+                    required
+                    placeholder="Enter your password"
+                  />
+                </div>
+
+                <div className="d-flex justify-content-center p-3">
+                  <button
+                    className="btn btn-primary"
+                    type="submit"
+                    disabled={loading}
+                  >
+                    {loading ? "Loggin in..." : "Login"}
+                  </button>
+                </div>
+                <hr  className='opacity-100 border-light'/>
+
+                <div className="text-center">
+                  <div className="me-2 text-light pb-3">Don't have an account?</div>
+                  <button
+                    className="btn btn-info"
+                    onClick={() => moveTo("/Signup")}
+                  >
+                    Sign Up
+                  </button>
+                </div>
+              </form>
             </div>
-          </form>
+          </div>
         </div>
       </div>
     );

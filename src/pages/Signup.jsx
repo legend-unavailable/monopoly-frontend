@@ -1,6 +1,7 @@
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import React, { useState } from "react";
+import frontDesk from '../assets/reception.jpg'
 
 const Signup = () => {
     const [userInfo, setUserInfo] = useState({email: '', password: '', username: '', confirmation: ''});
@@ -107,90 +108,177 @@ const Signup = () => {
         finally {setLoading(false);}
 
     }
-    return(
-        <div className="container">
-            <div className="d-flex justify-content-center p-4">
-                <h1>signup page</h1>
+    return (
+      <div className="container-fluid p-0">
+        <div className="position-relative" style={{ height: "100vh" }}>
+          <div
+            className="position-absolute top-0 start-0 w-100 h-100"
+            style={{
+              backgroundImage: `url(${frontDesk})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+            }}
+          ></div>
+
+          <div className="position-absolute top-0 start-0 w-100 h-100 bg-dark bg-opacity-50"></div>
+
+          <div className="position-relative p-4" style={{ zIndex: 2 }}>
+            <div className="d-flex justify-content-center p-4 text-light">
+              <h1>Millionaire's Club Front Desk</h1>
             </div>
 
             <div className="container d-flex justify-content-center p-2">
-                <form onSubmit={handleSubmit}
-                className="align-self-center w-75 p-2 border border-success border-3 rounded">
-                    <div className="container p-1">
-                        <div className="p-3">
-                            <label className="form-label">
-                                Enter your Email
-                            </label>
-                            {userExists && 
-                            (<div className="alert alert-danger p-1" style={{width: '55%'}} role="alert">
-                                Account with email already exists
-                            </div>)}
-                            {invalidEmail && 
-                            (<div className="alert alert-danger p-1" style={{width: '42%'}} role="alert">
-                                Please enter a valid email
-                            </div>)}
-                             <input type="email" name='email' className={emailClass} onChange={updateInfo} required/>
-                        </div>
+              <form
+                onSubmit={handleSubmit}
+                className="align-self-center p-2 border border-success border-3 rounded" style={{width: '35%'}}
+              >
+                <div className="container p-1">
+                  <div className="p-3">
+                    <label className="form-label text-light">
+                      Enter your Email
+                    </label>
+                    {userExists && (
+                      <div
+                        className="alert alert-danger p-1"
+                        style={{ width: "55%" }}
+                        role="alert"
+                      >
+                        Account with email already exists
+                      </div>
+                    )}
+                    {invalidEmail && (
+                      <div
+                        className="alert alert-danger p-1"
+                        style={{ width: "42%" }}
+                        role="alert"
+                      >
+                        Please enter a valid email
+                      </div>
+                    )}
+                    <input
+                      type="email"
+                      name="email"
+                      className={emailClass}
+                      onChange={updateInfo}
+                      required
+                    />
+                  </div>
 
-                        <div className="p-3">
-                            <label className="form-label">
-                                Enter a username
-                            </label>
-                             <input type="text" name='username' className="form-control" onChange={updateInfo} required/>
-                        </div>
+                  <div className="p-3">
+                    <label className="form-label text-light">
+                      Enter a username
+                    </label>
+                    <input
+                      type="text"
+                      name="username"
+                      className="form-control"
+                      onChange={updateInfo}
+                      required
+                    />
+                  </div>
 
-                        <div className="p-3">
-                            <label className="form-label">
-                                Enter a password
-                            </label>
-                            
-                            {specialErr && 
-                            (<div className="alert alert-danger p-1" style={{width: '89%'}} role="alert">
-                                Must include at least one special character. Eg. $, @, &
-                            </div>)}
-                            {lengthErr && 
-                            (<div className="alert alert-danger p-1" style={{width: '56%'}} role="alert">
-                                Must be at least 8 characters long
-                            </div>)}
-                            {letterErr && 
-                            (<div className="alert alert-danger p-1" style={{width: '92%'}} role="alert">
-                                Must include at least one uppercase and lowercase letter
-                            </div>)}
-                            {numberErr && 
-                            (<div className="alert alert-danger p-1" style={{width: '56%'}} role="alert">
-                                Must include at least one number
-                            </div>)}
-                            
-                             <input type="password" name='password' className={passwordsClass} onChange={updateInfo} required />
-                        </div>
+                  <div className="p-3">
+                    <label className="form-label text-light">
+                      Enter a password
+                    </label>
 
-                        <div className="p-3">
-                            <label className="form-label">
-                                Re-enter your password
-                            </label>
-                            {passwordErr && 
-                            (<div className="alert alert-danger p-1" style={{width: '175px'}} role="alert">
-                                Passwords don't match
-                            </div>)}
-                             <input type="password" name='confirmation' className={passwordsClass} onChange={updateInfo} required/>
-                        </div>
+                    {specialErr && (
+                      <div
+                        className="alert alert-danger p-1"
+                        style={{ width: "89%" }}
+                        role="alert"
+                      >
+                        Must include at least one special character. Eg. $, @, &
+                      </div>
+                    )}
+                    {lengthErr && (
+                      <div
+                        className="alert alert-danger p-1"
+                        style={{ width: "56%" }}
+                        role="alert"
+                      >
+                        Must be at least 8 characters long
+                      </div>
+                    )}
+                    {letterErr && (
+                      <div
+                        className="alert alert-danger p-1"
+                        style={{ width: "92%" }}
+                        role="alert"
+                      >
+                        Must include at least one uppercase and lowercase letter
+                      </div>
+                    )}
+                    {numberErr && (
+                      <div
+                        className="alert alert-danger p-1"
+                        style={{ width: "56%" }}
+                        role="alert"
+                      >
+                        Must include at least one number
+                      </div>
+                    )}
 
-                        <div className="d-flex justify-content-center p-1">
-                            <button className="btn btn-success" type='submit' disabled={loading}>Create Account</button>
-                        </div>
-                    </div>
-                    <hr />
-                    <div className="text-center">
-                        <div className="me-2">
-                            Already have an account?
-                        </div>
-                        <button className="btn btn-primary" onClick={() => moveTo('/Login')} disabled={loading}>Sign Up</button>
+                    <input
+                      type="password"
+                      name="password"
+                      className={passwordsClass}
+                      onChange={updateInfo}
+                      required
+                    />
+                  </div>
+
+                  <div className="p-3">
+                    <label className="form-label text-light">
+                      Re-enter your password
+                    </label>
+                    {passwordErr && (
+                      <div
+                        className="alert alert-danger p-1"
+                        style={{ width: "175px" }}
+                        role="alert"
+                      >
+                        Passwords don't match
+                      </div>
+                    )}
+                    <input
+                      type="password"
+                      name="confirmation"
+                      className={passwordsClass}
+                      onChange={updateInfo}
+                      required
+                    />
+                  </div>
+
+                  <div className="d-flex justify-content-center p-1">
+                    <button
+                      className="btn btn-success"
+                      type="submit"
+                      disabled={loading}
+                    >
+                      Create Account
+                    </button>
+                  </div>
+                </div>
+                <hr className="opacity-100 border-light" />
+                <div className="text-center">
+                  <div className="me-2  pb-3 text-light">
+                    Already have an account?
+                  </div>
+                  <button
+                    className="btn btn-primary"
+                    onClick={() => moveTo("/Login")}
+                    disabled={loading}
+                  >
+                    Log In
+                  </button>
+                </div>
+              </form>
             </div>
-                </form>
-            </div>
-
+          </div>
         </div>
-    )
+      </div>
+    );
 }
 
 export default Signup;
