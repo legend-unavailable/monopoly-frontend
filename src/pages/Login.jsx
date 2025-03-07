@@ -1,6 +1,7 @@
 import axios from "axios";
 import React, {useEffect, useState} from "react";
 import { useNavigate } from "react-router-dom";
+import lounge from '../assets/cigarLounge.jpg'
 
 const Login = () => {
     const [loginInfo, setLoginInfo] = useState({email: '', password: ''});
@@ -11,6 +12,15 @@ const Login = () => {
     const [loading, setLoading] = useState(false);
 
     const moveTo = useNavigate();
+
+    const backgroundStyle = {
+      backgroundImage: `url(${lounge})`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat',
+      height: '100vh',
+      filter: 'brightness(0.5)'
+    }
 
     const emailCheck = (email) => {
         const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -63,7 +73,7 @@ const Login = () => {
     }
 
     return (
-      <div className="container">
+      <div className="container-fluid p-0" style={backgroundStyle}>
         <div className="d-flex justify-content-center">
           <h1>login page</h1>
         </div>
