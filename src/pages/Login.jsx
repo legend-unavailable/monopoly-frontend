@@ -1,7 +1,7 @@
 import axios from "axios";
 import React, {useState} from "react";
 import { useNavigate } from "react-router-dom";
-import lounge from '../assets/cigarLounge.jpg'
+import entrance from '../assets/entrance.jpg'
 
 const Login = () => {
     const [loginInfo, setLoginInfo] = useState({email: '', password: ''});
@@ -63,7 +63,7 @@ const Login = () => {
           <div
             className="position-absolute top-0 start-0 w-100 h-100"
             style={{
-              backgroundImage: `url(${lounge})`,
+              backgroundImage: `url(${entrance})`,
               backgroundSize: "cover",
               backgroundPosition: "center",
             }}
