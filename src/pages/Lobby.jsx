@@ -1,7 +1,25 @@
+import axios from 'axios';
 import lobby from '../assets/cigarLounge.jpg';
+import { useNavigate } from 'react-router-dom';
+
 
 const Lobby = () => {
+    const moveTo = useNavigate();
 
+    const getSession = async() => {
+        try {
+            const res = await axios.get('http://localhost:3000/lobby', {withCredentials: true});
+            if (res.data.authenticated) {
+                return;
+            }            
+            
+        } catch (err) {
+            console.log(err);
+            moveTo('/');
+        }         
+    }
+    getSession();
+    
     return(
         <div className="container-fluid p-0">
             <div className="position-relative" style={{height: '100vh'}}>

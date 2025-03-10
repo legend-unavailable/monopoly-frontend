@@ -26,7 +26,6 @@ const Login = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        console.log(loginInfo);
         setLoading(true);
 
         if (!emailCheck(loginInfo.email)) {
@@ -38,10 +37,11 @@ const Login = () => {
         setEmailClass("form-control is-valid");
         setPasswordClass("form-control is-valid");
         try {
-            const res = await axios.post('http://localhost:3000/login', loginInfo);
-            console.log(res);
+            const res = await axios.post('http://localhost:3000/login', loginInfo, {
+              withCredentials: true
+            });
             
-            if (res.data.isFound) {
+            if (res.data.isFound) {              
                 moveTo('/Lobby');
             }
         }
