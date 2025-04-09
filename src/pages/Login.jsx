@@ -1,7 +1,8 @@
 import axios from "axios";
-import React, {useState} from "react";
+import React, {useState, useContext, createContext} from "react";
 import { useNavigate } from "react-router-dom";
 import entrance from '../assets/entrance.jpg'
+
 
 const Login = () => {
     const [loginInfo, setLoginInfo] = useState({email: '', password: ''});
@@ -10,6 +11,8 @@ const Login = () => {
     const [passwordClass, setPasswordClass] = useState("form-control");
     const [invalidPassword, setInvalidPassword] = useState(false);
     const [loading, setLoading] = useState(false);
+
+    const [userID, setUserID] = useState(null);
 
     const moveTo = useNavigate();
 
