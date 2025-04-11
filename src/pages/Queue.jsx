@@ -2,6 +2,7 @@ import {useLocation, useNavigate } from 'react-router-dom';
 import hallway from '../assets/hallway.jpeg';
 import { useEffect, useState } from 'react';
 import { useSocket } from '../SocketContext';
+import axios from 'axios';
 
 const Queue = () => {
     const [players, setPlayers] = useState([]);
@@ -18,7 +19,21 @@ const Queue = () => {
     console.log(userInfo);
     
     const gameID = userInfo.gameID;
-    
+
+    useEffect(() => {
+        const getSession = async() => {
+            try {
+                const res = await axios.get('http://localhost:3000/lobby', {withCredentials: true});
+                if (res.data.authenticated) {
+                    return;
+                }
+            } catch (err) {
+                console.log(err);
+                moveTo('/');
+            }
+        };
+        getSession();
+    }, [])
     
     
     useEffect(() => {
@@ -29,6 +44,8 @@ const Queue = () => {
             setIsHost(data.hostPlayerID === userInfo.userID);
         };
         const handlePlayerStatusUpdated = (data) => {
+            console.log('updated players', data.players);
+            
             setPlayers(data.players);
             const ready = data.players.length >= 2 && data.players.every(p => p.isReady);
             setAllReady(ready);
@@ -48,7 +65,7 @@ const Queue = () => {
 
         socket.on('gameJoined', handleGameJoined);
         socket.on('playerStatusUpdated', handlePlayerStatusUpdated);
-        socket.on('playerJoined', handlePlayerJoined);
+        socket.on('playersUpdated', handlePlayerJoined);
         socket.on('playerLeft', handlePlayerLeft);
         socket.on('newHostAssigned', handleNewHostAssigned);
         socket.on('gameStarted', handleGameStarted);
@@ -61,7 +78,7 @@ const Queue = () => {
         return() => {
             socket.off('gameJoined', handleGameJoined);
             socket.off('playerStatusUpdated', handlePlayerStatusUpdated);
-            socket.off('playerJoined', handlePlayerJoined);
+            socket.off('playersUpdated', handlePlayerJoined);
             socket.off('playerLeft', handlePlayerLeft);
             socket.off('newHostAssigned', handleNewHostAssigned);
             socket.off('gameStarted', handleGameStarted);            
@@ -69,8 +86,12 @@ const Queue = () => {
     }, [gameID, userInfo, socket, moveTo]);
 
     const handleReadyToggle = (userID) => {
+        console.log(userID);
+        
         const player = players.find(p => p.userID === userID);
         if (player) {
+            console.log('new', player.userID, player.isReady);
+            
             toggleReady({
                 gameID,
                 userID: player.userID,
@@ -121,7 +142,7 @@ const Queue = () => {
                                     <h2 className="card-title">{`Player ${index + 1}`}</h2>
                                     <h5 className="text-light">Username: {player.username}</h5>
                                     <h5 className="text-light">Status: {player.isReady ? 'Ready' : 'Not Ready'}</h5>
-                                    <div className="container d-flex flex-xolumn justify-content-end" style={{height: '65%'}}>
+                                    <div className="container d-flex flex-column justify-content-end" style={{height: '65%'}}>
                                         {player.userID === userInfo.userID && (
                                             <>
                                             <button className={`btn ${player.isReady ? 'btn-secondary' : 'btn-success'} m-1`}

@@ -71,6 +71,9 @@ export const SocketProvider = ({children}) => {
             console.error('Error starting game:', data.msg);
             // Show error message
           });
+        socket.on('playerStatusUpdated', (data) => {
+            console.log('player status updated', data);            
+        })
         
         return () => {
             socket.off('connect');
@@ -90,6 +93,7 @@ export const SocketProvider = ({children}) => {
             socket.off('chatMsg');
             socket.off('gameStarted');
             socket.off('startGameErr');
+            socket.off('playerStatusUpdated');
             socket.disconnect();
             socketRef.current = null;
         }
@@ -103,7 +107,8 @@ export const SocketProvider = ({children}) => {
         leaveGame: (data) => socketRef.current?.emit('leaveGameRoom', data),
         sendChatMessage: (data) => socketRef.current?.emit('sendChatmsg', data),
         startGame: (data) => socketRef.current?.emit('startGame', data),
-        getAvailableGames: () => socketRef.current?.emit('getAvailableGames')
+        getAvailableGames: () => socketRef.current?.emit('getAvailableGames'),
+        toggleReady:(data) => socketRef.current?.emit('playerReady', data)
     };
     return (
         <SocketContext.Provider value={socketInterface}>
