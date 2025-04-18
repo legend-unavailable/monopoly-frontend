@@ -73,6 +73,13 @@ export const SocketProvider = ({children}) => {
           });
         socket.on('playerStatusUpdated', (data) => {
             console.log('player status updated', data);            
+        });
+        socket.on('diceRolled', (data) => {
+            console.log('dice rolled: ', data);            
+        });
+        socket.on('rollDiceErr', (data) => {
+            console.log('Err rolling dice', data);
+            
         })
         
         return () => {
@@ -94,6 +101,8 @@ export const SocketProvider = ({children}) => {
             socket.off('gameStarted');
             socket.off('startGameErr');
             socket.off('playerStatusUpdated');
+            socket.off('diceRolled');
+            socket.off('rollDiceErr');
             socket.disconnect();
             socketRef.current = null;
         }
@@ -108,7 +117,8 @@ export const SocketProvider = ({children}) => {
         sendChatMessage: (data) => socketRef.current?.emit('sendChatmsg', data),
         startGame: (data) => socketRef.current?.emit('startGame', data),
         getAvailableGames: () => socketRef.current?.emit('getAvailableGames'),
-        toggleReady:(data) => socketRef.current?.emit('playerReady', data)
+        toggleReady:(data) => socketRef.current?.emit('playerReady', data),
+        rollDice: (data) => socketRef.current?.emit('rollDice', data)
     };
     return (
         <SocketContext.Provider value={socketInterface}>

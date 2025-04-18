@@ -1,14 +1,20 @@
 import {useLocation, useNavigate } from 'react-router-dom';
 import hallway from '../assets/hallway.jpeg';
+import scooter from '../assets/scooter.png';
+import kart from '../assets/kart.png'
+import plane from '../assets/plane.png'
+import boat from '../assets/boat.png'
 import { useEffect, useState } from 'react';
 import { useSocket } from '../SocketContext';
-import axios from 'axios';
+import axios, { all } from 'axios';
 
 const Queue = () => {
     const [players, setPlayers] = useState([]);
     const [gameName, setGameName] = useState('');
     const [isHost, setIsHost] = useState(false);
     const [allReady, setAllReady] = useState(false);
+    const [moversTaken, setMoversTaken] = useState([]);
+    const [mover, setMover] = useState('');
     const {socket, toggleReady, startGame, leaveGame} = useSocket();
     const moveTo = useNavigate();
 
@@ -45,8 +51,10 @@ const Queue = () => {
         };
         const handlePlayerStatusUpdated = (data) => {
             console.log('updated players', data.players);
-            
             setPlayers(data.players);
+            const taken = data.players.filter(player => player.isReady && player.mover).map(player => player.mover);
+            //data.players.map(player => player.mover).filter(mover => mover);
+            setMoversTaken(taken);
             const ready = data.players.length >= 2 && data.players.every(p => p.isReady);
             setAllReady(ready);
         };
@@ -59,8 +67,9 @@ const Queue = () => {
         const handleNewHostAssigned = (data) => {
             setPlayers(data.newHostID === userInfo.userID);
         };
-        const handleGameStarted = () => {
-            moveTo('/Game');
+        const handleGameStarted = (data) => {
+            console.log('gamestarted event received', data);
+            moveTo(`/Game/${data.gameID}`, {state: {gameInfo: {players: data.players, userID: userInfo.userID, username: userInfo.username}}});
         };
 
         socket.on('gameJoined', handleGameJoined);
@@ -87,21 +96,21 @@ const Queue = () => {
 
     const handleReadyToggle = (userID) => {
         console.log(userID);
-        
         const player = players.find(p => p.userID === userID);
-        if (player) {
+        if (player && mover !== '') {
             console.log('new', player.userID, player.isReady);
-            
             toggleReady({
                 gameID,
                 userID: player.userID,
-                isReady: !player.isReady
+                isReady: !player.isReady,
+                mover: mover
             });
         }
     };
 
     const handleGameStart = () => {
         if (isHost && allReady) {
+            console.log('emitting startgame', {gameID, hostID: userInfo.userID});
             startGame({
                 gameID,
                 hostID: userInfo.userID
@@ -115,6 +124,13 @@ const Queue = () => {
             userID: userInfo.userID
         });
         moveTo('/Lobby');
+    }
+
+    const handleMover = (vehicle, e) => {
+        e.preventDefault();
+        if (!allReady) {
+            setMover(vehicle);
+        }
     }
     
     return (
@@ -135,25 +151,68 @@ const Queue = () => {
                         </h1>
                     </div>
 
-                    <div className="row d-flex justify-content-around" style={{height: '75%'}}>
+                    <div className="row d-flex justify-content-around" style={{maxHeight: '400px'}}>
                         {players.map((player, index) => (
                             <div key={player.userID} className="card border-dark bg-dark col-5 m-2">
                                 <div className="card-body text-light">
                                     <h2 className="card-title">{`Player ${index + 1}`}</h2>
                                     <h5 className="text-light">Username: {player.username}</h5>
                                     <h5 className="text-light">Status: {player.isReady ? 'Ready' : 'Not Ready'}</h5>
-                                    <div className="container d-flex flex-column justify-content-end" style={{height: '65%'}}>
+                                    <div className="text-center my-3">
+                                        <h5 className="text-light">Pick your mover</h5>
+                                        <div className="container">
+                                            <img 
+                                            src={scooter} 
+                                            alt="scooter" 
+                                            id='grn' 
+                                            className={`img-fluid border m-1 ${moversTaken.includes('scooter') ? 'opacity-50': ''}`} 
+                                            style={{maxHeight: '75px', width: '75px', cursor: moversTaken.includes('scooter') ? 'not-allowed' : 'pointer'}} 
+                                            onClick={(e) => !moversTaken.includes('scooter') && handleMover('scooter', e)}/>
+                                            <img 
+                                            src={kart} 
+                                            alt="kart" 
+                                            id='red' 
+                                            className={`img-fluid border m-1 ${moversTaken.includes('kart') ? 'opacity-50' : ''}`} 
+                                            style={{maxHeight: '75px', width: '75px', cursor: moversTaken.includes('kart') ? 'not-allowed' : 'pointer'}}
+                                            onClick={(e) => !moversTaken.includes('kart') && handleMover('kart', e)}/>
+                                            <img 
+                                            src={plane} 
+                                            alt="plane" 
+                                            id='gry' 
+                                            className={`img-fluid border m-1 ${moversTaken.includes('plane') ? 'opacity-50' : ''}`}
+                                            style={{maxHeight: '75px', width: '75px', cursor: moversTaken.includes('plane') ? 'not-allowed' : 'pointer'}}
+                                            onClick={(e) => !moversTaken.includes('plane') && handleMover('plane', e)}/>
+                                            <img 
+                                            src={boat} 
+                                            alt="boat" 
+                                            id='blu' 
+                                            className={`img-fluid border m-1 ${moversTaken.includes('boat') ? 'opacity-50' : ''}`} 
+                                            style={{height: '75px', width: '75px', cursor: moversTaken.includes('boat') ? 'not-allowed' : 'pointer'}}
+                                            onClick={(e) => !moversTaken.includes('boat') && handleMover('boat', e)}/>
+                                        </div>
+                                    </div>
+                                    <div className="d-flex justify-content-center" >
                                         {player.userID === userInfo.userID && (
-                                            <>
-                                            <button className={`btn ${player.isReady ? 'btn-secondary' : 'btn-success'} m-1`}
-                                            onClick={() => handleReadyToggle(player.userID)}>
-                                                {player.isReady ? 'Unready' : 'Ready Up'}
-                                            </button>
-                                            <button className="btn btn-danger m-1"
-                                            onClick={handleLeaveGame}>
-                                                Leave Room
-                                            </button>
-                                            </>
+                                            <div className='mt-auto'>
+                                                <button className={`btn ${player.isReady ? 'btn-secondary' : 'btn-success'} m-1 w-100`}
+                                                onClick={() => handleReadyToggle(player.userID)}>
+                                                    {player.isReady ? 'Unready' : 'Ready Up'}
+                                                </button>
+                                                <button className="btn btn-danger m-1 w-100"
+                                                onClick={handleLeaveGame}>
+                                                    Leave Room
+                                                </button>
+                                                {isHost && allReady && (
+                                                    <div className="d-flex"></div>
+                                                )}
+                                                {isHost && allReady && (
+                                                    <div className="d-flex justify-content-center mt-4">
+                                                        <button className="btn btn-primary" onClick={handleGameStart}>
+                                                            Start Game
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>  
                                         )}
                                     </div>
                                 </div>

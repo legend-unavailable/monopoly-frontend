@@ -160,7 +160,9 @@ const Lobby = () => {
                 </div>
             </div>
             <hr />
-            <button>Go Back</button>
+            <div className="pb-3 d-flex justify-content-center">
+                <button className="btn btn-light" onClick={() => handleSwitch(1)}>Go Back</button>
+            </div>
         </div>
         
     )
