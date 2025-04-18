@@ -10,14 +10,17 @@ const DiceRoller = ({gameID, userInfo, isMyTurn, phase, turnOrderRolls, setTurnO
 
     const handleRoll = () => {
         console.log('in handleroll');
+        console.log(userInfo.userID);
         
-        if (!rolling) {
+        
+        if (!rolling && isMyTurn && (!hasRolled || phase === 'playing')) {
             setRolling(true);
             console.log(gameID, userInfo.userID, phase);
             
             rollDice({gameID, userID: userInfo.userID, phase});
         }
     };
+    
 
     useEffect(() => {
         if (!socket) return;
@@ -26,7 +29,7 @@ const DiceRoller = ({gameID, userInfo, isMyTurn, phase, turnOrderRolls, setTurnO
                 setRolling(false);
             }
             if (phase === 'turnOrder') {
-                console.log(userID);
+                console.log('updating roll for', userID, 'with', dice);
                 
                 setTurnOrderRolls((prev) => ({
                     ...prev, [userID]: dice
