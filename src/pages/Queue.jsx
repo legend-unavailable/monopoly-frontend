@@ -4,7 +4,7 @@ import scooter from '../assets/scooter.png';
 import kart from '../assets/kart.png'
 import plane from '../assets/plane.png'
 import boat from '../assets/boat.png'
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSocket } from '../SocketContext';
 import axios, { all } from 'axios';
 
@@ -14,15 +14,13 @@ const Queue = () => {
     const [isHost, setIsHost] = useState(false);
     const [allReady, setAllReady] = useState(false);
     const [moversTaken, setMoversTaken] = useState([]);
-    const [mover, setMover] = useState('');
+    const moverRef = useRef('');
     const {socket, toggleReady, startGame, leaveGame} = useSocket();
     const moveTo = useNavigate();
 
     const {state} = useLocation();
-    console.log(state);
     
     const userInfo = state?.userInfo;
-    console.log(userInfo);
     
     const gameID = userInfo.gameID;
 
@@ -50,7 +48,6 @@ const Queue = () => {
             setIsHost(data.hostPlayerID === userInfo.userID);
         };
         const handlePlayerStatusUpdated = (data) => {
-            console.log('updated players', data.players);
             setPlayers(data.players);
             const taken = data.players.filter(player => player.isReady && player.mover).map(player => player.mover);
             //data.players.map(player => player.mover).filter(mover => mover);
@@ -68,8 +65,7 @@ const Queue = () => {
             setPlayers(data.newHostID === userInfo.userID);
         };
         const handleGameStarted = (data) => {
-            console.log('gamestarted event received', data);
-            moveTo(`/Game/${data.gameID}`, {state: {gameInfo: {players: data.players, userID: userInfo.userID, username: userInfo.username}}});
+            moveTo(`/Game/${data.gameID}`, {state: {gameInfo: {players: data.players, userID: userInfo.userID, username: userInfo.username, mover: moverRef.current}}});
         };
 
         socket.on('gameJoined', handleGameJoined);
@@ -95,22 +91,19 @@ const Queue = () => {
     }, [gameID, userInfo, socket, moveTo]);
 
     const handleReadyToggle = (userID) => {
-        console.log(userID);
         const player = players.find(p => p.userID === userID);
-        if (player && mover !== '') {
-            console.log('new', player.userID, player.isReady);
+        if (player && moverRef.current !== '') {
             toggleReady({
                 gameID,
                 userID: player.userID,
                 isReady: !player.isReady,
-                mover: mover
+                mover: moverRef.current
             });
         }
     };
 
     const handleGameStart = () => {
         if (isHost && allReady) {
-            console.log('emitting startgame', {gameID, hostID: userInfo.userID});
             startGame({
                 gameID,
                 hostID: userInfo.userID
@@ -129,8 +122,9 @@ const Queue = () => {
     const handleMover = (vehicle, e) => {
         e.preventDefault();
         if (!allReady) {
-            setMover(vehicle);
+            moverRef.current = vehicle;
         }
+        
     }
     
     return (

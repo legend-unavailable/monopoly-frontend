@@ -114,11 +114,12 @@ export const SocketProvider = ({children}) => {
         createGame: (data) => socketRef.current?.emit('createGameRoom', data),
         joinGame: (data) => socketRef.current?.emit('joinGameRoom', data),
         leaveGame: (data) => socketRef.current?.emit('leaveGameRoom', data),
-        sendChatMessage: (data) => socketRef.current?.emit('sendChatmsg', data),
+        sendChatMessage: (data) => socketRef.current?.emit('sendChatMsg', data),
         startGame: (data) => socketRef.current?.emit('startGame', data),
         getAvailableGames: () => socketRef.current?.emit('getAvailableGames'),
         toggleReady:(data) => socketRef.current?.emit('playerReady', data),
-        rollDice: (data) => socketRef.current?.emit('rollDice', data)
+        rollDice: (data) => socketRef.current?.emit('rollDice', data),
+        buyProperty: (data) => socketRef.current?.emit('propertyPurhcased', data)
     };
     return (
         <SocketContext.Provider value={socketInterface}>
