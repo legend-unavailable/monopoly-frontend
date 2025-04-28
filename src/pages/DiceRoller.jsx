@@ -18,6 +18,8 @@ const DiceRoller = ({gameID, userInfo, isMyTurn, phase, turnOrderRolls, setTurnO
     const diceImgs = {1: dice1, 2: dice2, 3: dice3, 4: dice4, 5: dice5, 6: dice6}
     const handleRoll = () => {
         if (!rolling && isMyTurn && (!hasRolled || phase === 'playing')) {
+            console.log('m', diceValues);
+            
             setRolling(true);            
             rollDice({gameID, userID: userInfo.userID, phase});
         }
@@ -31,7 +33,7 @@ const DiceRoller = ({gameID, userInfo, isMyTurn, phase, turnOrderRolls, setTurnO
 
     useEffect(() => {
         if (!socket) return;
-        const handleDiceRolled = ({userID, dice, phase}) => {
+        const handleDiceRolled = ({userID, dice, isDoubles, phase}) => {
             if (userID === userInfo.userID) {
                 setRolling(false);
             }
@@ -45,7 +47,9 @@ const DiceRoller = ({gameID, userInfo, isMyTurn, phase, turnOrderRolls, setTurnO
                 const totalRoll = dice.reduce((a, b) => a + b, 0);
                 setDiceValues(dice);
                 //replace with handleTurn eventually
-                updatePlayerLocation(userID, totalRoll);
+                console.log('no', diceValues);
+                
+                updatePlayerLocation(userID, totalRoll, {dice, isDoubles});
                 if (userID === userInfo.userID) setHasRolledThisTurn(true);
             }
         };

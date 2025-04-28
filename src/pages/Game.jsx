@@ -16,7 +16,7 @@ import { useSocket } from "../SocketContext";
 
 
 const Game = () => {
-    const {socket, sendChatMessage, buyProperty} = useSocket();
+    const {socket, sendChatMessage, buyProperty, switchPlayer, updateLocation, sendMoney, updateJail} = useSocket();
     const [phase, setPhase] = useState('turnOrder');
     const [turnOrderRolls, setTurnOrderRolls] = useState({});
     const [turnQueue, setTurnQueue] = useState([]);
@@ -28,6 +28,7 @@ const Game = () => {
     const [location, setLocation] = useState('Go');
 
     const [propsOn, setPropsOn] = useState(false);
+    const [inJail, setInJail] = useState(false);
 
     const [textMsg, setTextMsg] = useState('');
 
@@ -37,7 +38,7 @@ const Game = () => {
     const [properties, setProperties] = useState([]);
 
     const [landedProperty, setLandedProperty] = useState(null);
-    const [popUp, setPopUp] = useState(false);
+    const [popUp, setPopUp] = useState({type: 'start'});
 
     const [dropdown, setDropdown] = useState('All Players');
     const [chatMsgs, setChatMsgs] = useState([]);
@@ -62,8 +63,6 @@ const Game = () => {
                     setdbPlayers(res.data.players);
                     setProperties(res.data.properties);
                 }
-                console.log(res.data.players);
-                console.log('pr', res.data.properties);
                 
                 
             } catch (err) {
@@ -80,7 +79,7 @@ const Game = () => {
             const property = (locations[me.location] || locations[0]);
             const bg = location.img;
             if (bg !== currentbgImage) {
-                //setNextBgImage(bg);
+                setNextBgImage(bg);
                 setFadeIn(true);
                 setTimeout(() => {
                     setCurrentBgImage(bg);
@@ -120,36 +119,59 @@ const Game = () => {
             
             setChatMsgs((prev) => [...prev, data]);
         }
+        const handleTurnChange = (data) => {
+            setPopUp({type: 'start'});
+            setCurrentTurnUserID(data);
+            setLandedProperty(null);
+            console.log('landed prop', landedProperty);
+            console.log('pop type', popUp.type);
+            
+        }
         //socket purchase
         const handlePurchaseUpdate = (data) => {
-            setdbPlayers(prevPlayers => 
-                prevPlayers.map(p => p.userID === userID
-                    ? {...p, balance: data.balance} : p
-                )
-            );
-            setProperties(prevProps => {
+            console.log('final');
+            
+            setdbPlayers(data.players)
+            setProperties(prevProps => 
                 prevProps.map(p => 
                     p.propertyID === data.propertyID ? {...p, ownerID: data.userID}: p
                 )
-            });
-            setDropdown('All Players');
-            const prop = properties.find(p => p.propertyID === data.propertyID);
-            setMsg(`has bought ${prop.name}`);
-            sendMsg();
+            );
+            if (data.userID === userID) {
+                const p = properties.find(p => p.propertyID === data.propertyID);
+                const turn = dbplayer.find(p => p.userID === userID);
+                sendMsg('All Players', turn.username, `has bought ${p.name}`);
+            }  
         }
+        const handleLocationUpdate = (data) => {
+            setdbPlayers(data);
+            console.log('updated player location');
+            
+        }
+        
         socket.on('propertyPurchaseUpdate', handlePurchaseUpdate)
         socket.on('chatMsg', handleChatMsg);
+        socket.on('turnChanged', handleTurnChange);
+        socket.on('updatedLoc', handleLocationUpdate);
         return() => {
             socket.off('chatMsg', handleChatMsg);
-            socket.off('properyPurchaseUpdate', handlePurchaseUpdate);
+            socket.off('propertyPurchaseUpdate', handlePurchaseUpdate);
+            socket.off('turnChanged', handleTurnChange);
+            socket.off('updatedLoc', handleLocationUpdate)
         };
-    }, [socket]);
+    }, [socket, properties, currentTurnUserID, landedProperty]);
 
     //ADD: final stage
     const endTurn = () => {
         const currentIndex = turnQueue.indexOf(currentTurnUserID);
         const nextIndex = (currentIndex + 1) % turnQueue.length;
-        setCurrentTurnUserID(turnQueue[nextIndex]);
+        const nextPlayerID = turnQueue[nextIndex]
+        console.log('endturn', nextPlayerID);
+        const me = dbplayer.find(p => p.userID === userID)
+        if (me.inJail) {
+            setInJail(true);   
+        } 
+        switchPlayer({gameID, nextPlayerID});
     };
 
     //remove
@@ -165,82 +187,134 @@ const Game = () => {
     }
 
     //send msg
-    const sendMsg = () => {
+    const sendMsg = (receiver, sender, msg) => {
         if (!msg.trim()) return;
         const payload = {
             gameID,
-            sender: username,
-            receiver: dropdown === 'All Players' ? 'all': dropdown,
+            sender: sender,
+            receiver: receiver === 'All Players' ? 'all': dropdown,
             msg: msg.trim()
         };      
         sendChatMessage(payload);
         setMsg('');
     }
 
-    const ismyturn = phase === 'turnOrder'?
+    let ismyturn = phase === 'turnOrder'?
     !turnOrderRolls.hasOwnProperty(userID) :
     currentTurnUserID === userID;
 
-    const handleTurn = (userID, diceTotal) => {
+    const handleTurn = (userID, diceTotal, diceRolls) => {
         const me = dbplayer.find(p => p.userID === userID);
         const currentPos = me.location || 0;
-        const newPos = (currentPos + diceTotal) % locations.length;
-        const passedGo = (currentPos + diceTotal) >= locations.length;
+        console.log('jail?', me.inJail, 'rolls', diceRolls);
+        if (currentTurnUserID === userID) {
+            sendMsg('All Players', me.username, `rolled ${diceRolls.dice[0]} and ${diceRolls.dice[1]}`);
+
+        }        
+        
+        let newPos = (currentPos + diceTotal) % locations.length;
+        let passedGo = (currentPos + diceTotal) >= locations.length;
+        if (me.inJail) {
+            if (diceRolls.isDoubles) {
+                updateJail({me, gameID, state: 'free'})
+                newPos = (8 + diceTotal) % locations.length;
+                passedGo = false;
+                setInJail(false);
+                console.log('wtf');
+                
+
+            }
+            else {
+                if (me.jailTurns < 2) {
+                    setPopUp({type: 'final'});
+                    updateJail({me, gameID, state: 'update'});
+                    sendMsg('All Players', me.username, "couldn't escape jail");
+                    console.log('lastly');
+                    
+                    return;
+                }
+                else {
+                    updateJail({me, gameID, state: 'free'});
+                    sendMsg('All players', me.username, "couldn't escape in time and has paid the bail");
+                    newPos = (8 + diceTotal) % locations.length;
+                    passedGo = false;
+                    setInJail(false);
+                }
+                console.log('shouldnt be here');
+                
+            }
+        }
         //passed GO
         if (passedGo) {
             setPopUp({
                 type: 'Go',
                 data: {
                     me,
+                    newPos,
                     upgrade: (me.moverLevel < 5)
                 }
-            })
+            });
+            return;
+        }  
+        finishTurn(userID, newPos,)      
+    }
+    const finishTurn = (userID, newPos, newPlayer) => {
+        if (newPos === 8 || newPos === 16 || newPos === 0) {
+            setPopUp({type: 'final'})
         }
-        const bleh = newPos == 2 || newPos == 5 || newPos == 8 || newPos == 13 || newPos == 16 || newPos == 18 || newPos == 24 || newPos == 27 || newPos == 29 || newPos == 0 
-        //ADD: check if justVistsing or free parking
+        else if (newPos === 24) {
+            newPlayer = dbplayer.map(p => p.userID === userID ? {...p, inJail: true} : p);
+            setdbPlayers(newPlayer);
+            setPopUp(({type: 'final'}));
+        }
+        else if (newPos == 2 || newPos == 13 || newPos == 27) {
+            //ADD: millionaire lifestyle
+            setPopUp({type: 'final'})
+        }
+        else if (newPos == 5 || newPos == 18 || newPos == 29) {
+            //ADD: chance
+            setPopUp({type: 'final'})
+        }
         //ADD: check if jail
         //ADD: check if card
-        if (bleh) {
-            
-        }
         //lands on property
         else {
             const property = properties.find(p => p.position === newPos);
+            console.log('p', property, 'newPos', newPos);
+            
             //property is owned by someone else
             if (property.ownerID && property.ownerID !== userID) {
                 const owner = dbplayer.find(p => p.userID === property.ownerID);
+                const me = dbplayer.find(p => p.userID === userID);
                 handlePayment(me, owner, property);
+            }
+            else if (property.ownerID === userID) {
+                setLandedProperty(property);
+                setPopUp({type: 'final'});
             }
             else {
                 //has fortune card
                 if (property.fortuneExists) {
                     //ADD: collect fortune
                 }
+                console.log('name', property.name);
                 setLandedProperty(property);
+                const player = dbplayer.find(p => p.userID === userID);
+                setPopUp({type: 'prop', data: {userID, tooPoor: player.balance < property.priceTag}});
             }
         }
-    }
+        console.log('players', dbplayer);
+        const player = newPlayer === undefined ? dbplayer : newPlayer
+        updateLocation({gameID, userID, newPos, player});
+    };
     //player
-    const handlePropertyPurchase = (userID, property, ans) => {
+    const handlePropertyPurchase = (userID, property, ans) => {        
         if (ans === 'yes') {
-            setdbPlayers(prevPlayers => 
-                prevPlayers.map(player =>
-                    player.userID === userID
-                        ? {...player, balance: player.balance - property.priceTag}
-                        : player
-                 )
-            );
-            setProperties(prevProps =>
-                prevProps.map(prop =>
-                    prop._id === property._id
-                        ? {...prop, ownerID: userID}
-                        : prop
-                )
-            );
-            setLandedProperty(null);
             buyProperty({gameID, userID, propertyID: property.id})
         }
         setLandedProperty(null);
+        setPopUp({type: 'final'})
+        
     }
     //player owes rent
     const handlePayment = (user, owner, property) => {
@@ -303,7 +377,7 @@ const Game = () => {
         //ADD: final stage
     }
 
-    const handleEvents = () => {
+    const handleEvents = (ans) => {
         //paying rent
         if (popUp.type === 'payment') {
             //cant afford rent
@@ -320,12 +394,18 @@ const Game = () => {
                 });
                 return;
             }
+            console.log('pay', dbplayer);
+            
             setdbPlayers(prevPlayer => 
                 prevPlayer.map(p => {
-                    if (p.userID === user.userID) {
+                    console.log('p', p.userID);
+                    console.log('data', popUp.data);
+                    
+                    
+                    if (p.userID === popUp.data.payer.userID) {
                         return {...p, balance: p.balance - (popUp.data.amt)};
                     }
-                    else if (p.userID = property.ownerID) {
+                    else if (p.userID === popUp.data.owner.userID) {
                         return {...p, balance: p.balance + (popUp.data.amt)};
                     }
                     else {
@@ -333,15 +413,20 @@ const Game = () => {
                     }
                 })
             );
-            setPopUp(null);
+            sendMsg('All Players', popUp.data.payer.username, `has payed $${popUp.data.amt} in rent to ${popUp.data.owner.username}`);
+            sendMoney({payer: popUp.data.payer, owner: popUp.data.owner, amt: popUp.data.amt, gameID});
+            setPopUp({type: "final"});
+
         }
         //salary and upgrading
         else if (popUp.type === 'Go') {
             let salary = 150000;
             let moverLvl = popUp.data.me.moverLevel;
+            let msg = '';
             if (popUp.data.deduct != 0) {
                 salary -= 50000;
-                moverLvl = popUp.data.me.moverLevel + 2;
+                moverLvl += 2;
+                msg = 'has upgraded their mover and ';
             }
             if (popUp.data.me.moverLevel > 1) {
                 if (popUp.data.me.moverLevel > 3) {
@@ -349,17 +434,36 @@ const Game = () => {
                 }
                 salary += 50000;
             } 
-            setdbPlayers(prevPlayers => {
-                prevPlayers.map(p => 
-                    p.userID === popUp.data.me.userID ?
-                        {...p, balance: p.balance + salary, moverLevel: moverLvl} :
-                        p
-                )
-            });
-            setPopUp(null);
+            const {me, newPos} = popUp.data;
+            const updated = dbplayer.map(p => 
+                p.userID === me.userID ?
+                {...p, balance: p.balance + salary, moverLevel: moverLvl} : p
+            );
+            setdbPlayers(updated);
+            msg += `has collected their salary`;
+            sendMsg('All Players', popUp.data.me.username, msg);
+            setPopUp({type: 'start'});
+            finishTurn(me.userID, newPos, updated);
+
         }
         else if (popUp.type === 'broke') {
             setPropsOn(true);
+        }
+        else if (inJail === true) {
+            const me = dbplayer.find(p => p.userID === userID);
+            if (ans === 'bribe') {
+                setdbPlayers(prev => 
+                    prev.map(p => 
+                        p.userID === me.userID ?
+                        {...p, balance: p.balance - 50000, inJail: false, jailTurns: 0, location: 8} : p
+                    )
+                );
+                sendMsg('All Players', me.username, 'has paid the bail');
+                setInJail(false);
+            }
+            else {
+                setInJail(false);
+            }
         }
     }
     //mortgage property
@@ -393,6 +497,8 @@ const Game = () => {
                 }
             })
         );
+        setMsg('has mortgaged ', prop.name);
+        sendMsg('All Players', popUp.data.payer.username, msg);
         setPopUp({
             type: 'payment',
             data: {
@@ -484,7 +590,7 @@ const Game = () => {
                                 Mover
                                 <img src={moverImgs[mover]} alt={mover} className="img-fluid h-50 w-100" />
                             </div>
-                            {/*phase === 'turnOrder' && landedProperty == null && */(
+                        {landedProperty == null && popUp.type == 'start' && !inJail && (
                             <div className="container p-3">
                                 <h2 className="text-white ">
                                     {phase === 'turnOrder'?'Roll the dice to determine turn order':''}
@@ -522,28 +628,33 @@ const Game = () => {
                                         })}
                                     </div>
                                 )}
-                            </div>)}
-                            {phase === 'playing' && landedProperty && (
+                            </div>
+                        )}
+                            {popUp.type === 'prop' && ismyturn && (
                                 <div className="container p-3 text-white bg-dark rounded shadow">
                                     <h3>Do you want to buy this property for ${landedProperty.priceTag}</h3>
-                                    <button className="btn btn-success me-2" onClick={() => handlePropertyPurchase(userID, landedProperty, 'yes')}>
+                                    <button 
+                                    className="btn btn-success me-2" 
+                                    onClick={() => handlePropertyPurchase(popUp.data.userID, landedProperty, 'yes')}
+                                    disabled={popUp.data.tooPoor}
+                                    >
                                         Buy
                                     </button>
-                                    <button className="btn btn-danger me-2" onClick={() => handlePropertyPurchase(userID, landedProperty, 'no')}>
+                                    <button className="btn btn-danger me-2" onClick={() => handlePropertyPurchase(popUp.data.userID, landedProperty, 'no')}>
                                         Skip
                                     </button>
 
                                 </div>
                             )} 
-                            {popUp.type === 'Go' && (
+                            {popUp.type === 'Go' && currentTurnUserID === userID && (
                                 <div className="container p-3 text-white bg-dark rounded shadow">
                                     {popUp.data.upgrade && (
                                         <div>
-                                            <h3>Do you want to upgrade your mover? $50,000 will be taken out of salary if yes.</h3>
-                                            <button className="btn btn-success me-2" onClick={() => setPopUp({type: 'Go', data: {me: popUp.data.me, upgrade: false, deduct: 50000}})}>
+                                            <h5>Do you want to upgrade your mover? $50,000 will be taken out of salary if yes.</h5>
+                                            <button className="btn btn-success me-2" onClick={() => setPopUp({type: 'Go', data: {me: popUp.data.me, upgrade: false, deduct: 50000, newPos: popUp.data.newPos}})}>
                                                 Upgrade
                                             </button>
-                                            <button className="btn btn-danger me-2" onClick={() => setPopUp({type: 'Go', data: {me: popUp.data.me, upgrade: false, deduct: 0}})}>
+                                            <button className="btn btn-danger me-2" onClick={() => setPopUp({type: 'Go', data: {me: popUp.data.me, upgrade: false, deduct: 0, newPos: popUp.data.newPos}})}>
                                                 Skip
                                             </button>
                                         </div>
@@ -557,7 +668,7 @@ const Game = () => {
 
                                 </div>
                             )}
-                            {popUp.type === 'payment' && (
+                            {popUp.type === 'payment' && currentTurnUserID === userID && (
                                 <div className="container p-3 bg-dark rounded shadow">
                                     <h3 className="text-white">
                                         You must pay ${popUp.data.amt} in rent to {popUp.data.owner.username}.
@@ -584,6 +695,36 @@ const Game = () => {
                                         </button>
                                     </div>
                                 </div>
+                            )}
+                            {inJail && popUp.type === 'start' && currentTurnUserID === userID && (
+                                <div className="container border border-white bg-dark">
+                                <h3 className="text-white">
+                                    You are in jail. Do you want to bribe the gaurds with $50,000 or try to escape. 
+                                </h3>
+                                <div className="container">
+                                    <button className="btn btn-secondary" onClick={() => handleEvents('escape')}>
+                                        Escape
+                                    </button>
+                                    <button className="btn btn-danger"
+                                    onClick={() => handleEvents('bribe')}
+                                    >
+                                        Bribe
+                                    </button>
+                                </div>
+                            </div>
+                            )}
+                            {popUp.type === 'final'&& currentTurnUserID === userID && (
+                                <div className="container border border-white bg-dark">
+                                <h3 className="text-white">
+                                    When you are done, click the button to end your turn. 
+                                </h3>
+                                <div className="container">
+                                    <button className="btn btn-secondary" onClick={() => endTurn()}>
+                                        End Turn
+                                    </button>
+                                    
+                                </div>
+                            </div>
                             )}
                         </div>
                     </div>
@@ -626,7 +767,7 @@ const Game = () => {
                                     </ul>
                                 </div>
                                 <div className="form-floating w-100">
-                                    <input type="text" className="form-control" id='msg' value={msg} onChange={(e) => setMsg(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && sendMsg()}/>
+                                    <input type="text" className="form-control" id='msg' value={msg} onChange={(e) => setMsg(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && sendMsg(dropdown, username, msg)}/>
                                     <label for="msg">Message</label>
                                 </div>
                             </div>

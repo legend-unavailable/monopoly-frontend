@@ -81,6 +81,10 @@ export const SocketProvider = ({children}) => {
             console.log('Err rolling dice', data);
             
         })
+        socket.on('propertyPurchaseFailed', (data) => {
+            console.log(data.reason);
+            
+        })
         
         return () => {
             socket.off('connect');
@@ -119,7 +123,11 @@ export const SocketProvider = ({children}) => {
         getAvailableGames: () => socketRef.current?.emit('getAvailableGames'),
         toggleReady:(data) => socketRef.current?.emit('playerReady', data),
         rollDice: (data) => socketRef.current?.emit('rollDice', data),
-        buyProperty: (data) => socketRef.current?.emit('propertyPurhcased', data)
+        buyProperty: (data) => socketRef.current?.emit('propertyPurchased', data),
+        updateLocation: (data) => socketRef.current?.emit('updateLoc', data),
+        switchPlayer: (data) => socketRef.current?.emit('turnChange', data),
+        sendMoney: (data) => socketRef.current?.emit('transferMoney', data),
+        updateJail: (data) => socketRef.current?.emit('updateJail', data),
     };
     return (
         <SocketContext.Provider value={socketInterface}>
