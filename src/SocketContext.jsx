@@ -128,6 +128,10 @@ export const SocketProvider = ({children}) => {
         switchPlayer: (data) => socketRef.current?.emit('turnChange', data),
         sendMoney: (data) => socketRef.current?.emit('transferMoney', data),
         updateJail: (data) => socketRef.current?.emit('updateJail', data),
+        cardUpdate: (data) => socketRef.current?.emit('card', data),
+        cardRemoval: (data) => socketRef.current?.emit('removal', data),
+        fortuneDel: (data) => socketRef.current?.emit('removeF', data),
+        endGame: (data) => socketRef.current?.emit('gameOver', data),
     };
     return (
         <SocketContext.Provider value={socketInterface}>

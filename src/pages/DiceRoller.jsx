@@ -9,7 +9,7 @@ import dice4 from '../assets/dice/face4.png'
 import dice5 from '../assets/dice/face5.png'
 import dice6 from '../assets/dice/face6.png'
 
-const DiceRoller = ({gameID, userInfo, isMyTurn, phase, turnOrderRolls, setTurnOrderRolls, updatePlayerLocation}) => {
+const DiceRoller = ({gameID, userInfo, isMyTurn, phase, turnOrderRolls, setTurnOrderRolls, updatePlayerLocation, sendMsg}) => {
     const {socket, rollDice} = useSocket();
     const [diceValues, setDiceValues] = useState([null, null]);
     const [rolling, setRolling] = useState(false);
@@ -33,24 +33,25 @@ const DiceRoller = ({gameID, userInfo, isMyTurn, phase, turnOrderRolls, setTurnO
 
     useEffect(() => {
         if (!socket) return;
-        const handleDiceRolled = ({userID, dice, isDoubles, phase}) => {
-            if (userID === userInfo.userID) {
+        const handleDiceRolled = ({me, dice, isDoubles, phase}) => {
+            console.log(me);
+            
+            if (me.userID === userInfo.userID) {
                 setRolling(false);
             }
             if (phase === 'turnOrder') {
                 
                 setTurnOrderRolls((prev) => ({
-                    ...prev, [userID]: dice
+                    ...prev, [me.userID]: dice
                 }));
             }
             else{
                 const totalRoll = dice.reduce((a, b) => a + b, 0);
                 setDiceValues(dice);
                 //replace with handleTurn eventually
-                console.log('no', diceValues);
-                
-                updatePlayerLocation(userID, totalRoll, {dice, isDoubles});
-                if (userID === userInfo.userID) setHasRolledThisTurn(true);
+                //sendMsg('All Players', me.username, `rolled ${totalRoll}`)                
+                updatePlayerLocation(me.userID, totalRoll, {dice, isDoubles});
+                if (me.userID === userInfo.userID) setHasRolledThisTurn(true);
             }
         };
         socket.on('diceRolled', handleDiceRolled);
@@ -58,21 +59,7 @@ const DiceRoller = ({gameID, userInfo, isMyTurn, phase, turnOrderRolls, setTurnO
     }, [socket, userInfo, setTurnOrderRolls]);
 
     return(
-        <div className="text-center">
-            <div className="d-flex justify-content-center mt-2">
-                {diceValues.map((val, i) => (
-                    <div className="mx-2" key={i}>
-                        {val !== null ? (
-                            <img 
-                            src={diceImgs[val]} 
-                            alt={`Dice ${val}`}
-                            style={{width: '60px', height: '60px'}}/>
-                        ) : (
-                            <div style={{width: '60px', height: '60px', background: '#eee', borderRadius: '8px'}}/>
-                        )}
-                    </div>
-                ))}
-            </div>
+        <div className="text-center m-3">
             <button 
             className="btn btn-primary m-2"
             disabled={rolling || (phase === 'turnOrder' && hasRolled) || (phase === 'playing' && (!isMyTurn || hasRolledThisTurn))}
