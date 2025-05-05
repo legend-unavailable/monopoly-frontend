@@ -22,7 +22,7 @@ const Home = () => {
             <div className="position-absolute top-0 start-0 w-100 h-100 bg-dark bg-opacity-50"></div>
 
             <div
-              className="position-relative d-flex flex-column p-4"
+              className="position-relative d-flex flex-column mx-4"
               style={{ zIndex: 2 }}
             >
               <div className="d-flex justify-content-center p-3">
@@ -212,7 +212,7 @@ const Home = () => {
                   </ul>
                   </div>
                 </div>
-                <div className="container d-flex justify-content-center p-5">
+                <div className="container d-flex justify-content-center my-3">
                   <button className="btn btn-light" onClick={() => nextPage()}>
                     I Agree
                   </button>

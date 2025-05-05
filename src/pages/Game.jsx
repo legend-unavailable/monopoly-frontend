@@ -16,7 +16,7 @@ import styled from "@emotion/styled";
 
 
 const Game = () => {
-    const {socket, sendChatMessage, buyProperty, switchPlayer, updateLocation, sendMoney, updateJail, cardUpdate, cardRemoval, fortuneDel, endGame} = useSocket();
+    const {socket, sendChatMessage, buyProperty, switchPlayer, updateLocation, sendMoney, updateJail, cardUpdate, cardRemoval, fortuneDel, endGame, mortgage} = useSocket();
     const moveTo = useNavigate();
     const [phase, setPhase] = useState('turnOrder');
     const [turnOrderRolls, setTurnOrderRolls] = useState({});
@@ -166,12 +166,15 @@ const Game = () => {
             }
         };
         const handleFortuneDelete = (data) => {
+            console.log(data);
+            
             setProperties(prev => 
                 prev.map(p => 
-                    p.propertyID === data.property ?
+                    p.propertyID === data.property.propertyID ?
                     {...p, fortuneExists: false} : p
                 )
             );
+            setFortunes(data.fortunes);
         }
         const handleEnd = (data) => {
             console.log('end game');
@@ -179,6 +182,15 @@ const Game = () => {
             setPopUp({type: 'game'});
             console.log('emd', popUp.type);
             
+        };
+        const handleMortgage = (data) => {
+            setProperties(prev => 
+                prev.map(p => 
+                    p.propertyID === data.property.propertyID ?
+                    {...p, isMortaged: true} : p
+                )
+            );
+            setdbPlayers(data.players);
         }
         socket.on('propertyPurchaseUpdate', handlePurchaseUpdate)
         socket.on('chatMsg', handleChatMsg);
@@ -187,6 +199,7 @@ const Game = () => {
         socket.on('setCard', handleCardUpdate);
         socket.on('deleteFortune', handleFortuneDelete);
         socket.on('gameEnd', handleEnd);
+        socket.on('mortgaged', handleMortgage);
         return() => {
             socket.off('chatMsg', handleChatMsg);
             socket.off('propertyPurchaseUpdate', handlePurchaseUpdate);
@@ -257,7 +270,7 @@ const Game = () => {
         const me = dbplayer.find(p => p.userID === userID);
         const currentPos = me.location || 0;
         let newPos = (currentPos + diceTotal) % locations.length;
-        if (cardPop === 'space') {
+        if (cardPop.type === 'space') {
             newPos = locations.indexOf(l);
             setCardPop({type: 'start'});
             diceTotal = newPos > currentPos ? newPos - currentPos : newPos + 32 - currentPos;
@@ -359,13 +372,14 @@ const Game = () => {
         }
         else if (newPos == 2 || newPos == 13 || newPos == 27) {
             //ADD: millionaire lifestyle
-            setPopUp({type: 'final'})
+            //setPopUp({type: 'final'})
             //setCardPop({type: 'ml'});
+            setCardPop({type: 'ml'})
         }
         else if (newPos == 5 || newPos == 18 || newPos == 29) {
             //ADD: chance
-            setPopUp({type: 'final'});
-            //setCardPop({type: 'ch'});
+            //setPopUp({type: 'final'});
+            setCardPop({type: 'ch'});
         }
         //lands on property
         else {            
@@ -383,7 +397,7 @@ const Game = () => {
             else {
                 //has fortune card                
                 if ((property.fortuneExists && fortunes.length > 0) && currentTurnUserID === userID && cardPop.type !== 'buy2' && cardPop.type !== 'buyTwo' && cardPop.type !== 'buy') {
-                    fortuneDel({gameID, property});
+                    fortuneDel({gameID, property, fortunes});
                     setCardPop({type: 'fo'});
                     //ADD: collect fortune
                 }
@@ -616,27 +630,9 @@ const Game = () => {
             price += (prop.houseCost * prop.amtOfHouses * 0.5)
         }
         //mortgage
-        setProperties(prevProps =>
-            prevProps.map(p => {
-                if (p.ownerID === popUp.data.payer.userID) {
-                    return {...p, hasHotel: false, amtOfHouses: 0, isMortgaged: true}
-                }
-                else return p;
-            })            
-        )
         price += prop.mortgageValue;
-        setdbPlayers(prevPlayer => 
-            prevPlayer.map(p => {
-                if (p.userID === popUp.data.payer.userID) {
-                    return {...p, balance: p.balance + price};
-                }
-                else {
-                    return p;
-                }
-            })
-        );
-        setMsg('has mortgaged ', prop.name);
-        sendMsg('All Players', popUp.data.payer.username, msg);
+        mortgage({gameID, prop, price});
+        sendMsg('All Players', popUp.data.payer.username, `has mortgaged ${prop.name}`);
         setPopUp({
             type: 'payment',
             data: {
@@ -666,7 +662,8 @@ const Game = () => {
                     else money = card.valueByLevels[2]; 
                     cardUpdate({gameID, userID, val: money, card});
                     cardRemoval({gameID, cards: lifestyles, type: cardPop.type});
-                    setCardPop({type: 'start'});                  
+                    setCardPop({type: 'start'});
+                    setPopUp({type: 'final'})                  
                 }
             }
             else if (card.actionType === 'move') {
@@ -696,13 +693,16 @@ const Game = () => {
                 cardUpdate({gameID, userID, val: null, card});
                 cardRemoval({gameID, cards: lifestyles, type: cardPop.type});
                 setCardPop({type: 'start'});
+                setPopUp({type: 'final'});
             }
         }
         else if (cardPop.type === 'ch') {
             if (card.actionType === 'pay') {
                 if (card.actionValue === 'giveOne') {
                     const money = card.valueByLevels[0];
-                    setCardPop({type: 'pick', data: {money, card}})
+                    setCardPop({type: 'pick', data: {money, card}});
+                    setPopUp({type: 'final'});
+                    
                 }
                 else if (card.actionValue === 'giveAll') {
                     let money = 0;
@@ -714,16 +714,20 @@ const Game = () => {
                     cardUpdate({gameID, userID, val: money, card});
                     cardRemoval({gameID, cards: chances, type: cardPop.type});
                     setCardPop({type: 'start'});
+                    setPopUp({type: 'final'});
                 }
             }
             else if (card.actionType === 'collect') {
                 cardUpdate({gameID, userID, val: 0, card});
                 cardRemoval({gameID, cards: chances, type: cardPop.type});
                 setCardPop({type: 'start'});
+                setPopUp({type: 'final'});
             }
             else if (card.actionType === 'roll') {
                 setPopUp({type: 'start'});
                 setCardPop({type: 'dice', val: card.valueByLevels[0], card});
+                setPopUp({type: 'start'});
+
             }
             else if (card.actionType === 'downgrade') {
                 const me = dbplayer.find(p => p.userID === userID);
@@ -731,11 +735,13 @@ const Game = () => {
                     cardUpdate({gameID, userID, val: 0, card});
                 cardRemoval({gameID, cards: chances, type: cardPop.type});
                 setCardPop({type: 'start'});
+                setPopUp({type: 'final'});
             }
         }
         else if (cardPop.type === 'fo') {
             if (card.fortuneTitle === 'Feeling Generous!') {
                 if (card.actionValue === 'giveOne') {
+                    cardRemoval({gameID, cards: fortunes, type: cardPop.type});
                     setCardPop({type: 'pick', data: {money: card.valueByLevels[0], card}});
                     console.log('in give one');
                     
@@ -756,6 +762,7 @@ const Game = () => {
             }
             else if (card.fortuneTitle === 'Lawsuit!') {
                 const money = card.valueByLevels[0];
+                cardRemoval({gameID, cards: fortunes, type: cardPop.type});
                 setCardPop({type: 'pick', data: {money, card}})
             }
             else if (card.fortuneTitle === 'Wedding Gift!') {
@@ -920,7 +927,7 @@ const Game = () => {
                                 </div>
                             )} 
                             {popUp.type === 'Go' && currentTurnUserID === userID && (
-                                <div className="container p-3 text-white bg-dark rounded shadow text-center">
+                                <div className="container mt-3 text-white bg-dark rounded shadow text-center">
                                     {popUp.data.upgrade && (
                                         <div>
                                             <h5>Do you want to upgrade your mover? $50,000 will be taken out of salary if yes.</h5>
@@ -1049,70 +1056,103 @@ const Game = () => {
                 </div>
 
                 {propsOn && (
-                    <div className="container h-100">
-                        <div className="container border border-white bg-dark">
-                            {popUp.type === 'broke' && (
-                                <div>
-                                    {popUp.data.ownedProps.map(p => 
-                                        <div className={`container border border-white bg-${p.color}`}>
-                                            <h3 className={`border border-white text-black`}>
-                                                {p.name}
-                                            </h3>
-                                            {p.isMortaged && (
-                                                <h2 className="border border-white text-white">
-                                                    This property is already mortgaged
-                                                </h2>
-                                            )}
-                                            {!p.isMortaged && (
-                                                <div className="container border border-white">
-                                                    <h5 className="text-white">Rent: ${p.baseRent}</h5>
-                                                    Rent: ${p.baseRent}
-                                                    {p.rentWithHouses.map((rents, index) => (
-                                                        <h5 className="text-white">Rent with {index + 1} house/s: ${rents}</h5>
-                                                    ))}
-                                                    <h5 className="text-white">Rent with a hotel: ${p.rentWhitHotel}</h5>
-                                                    <h5 className="text-white">Cost of houses and hotel: ${p.houseCost}</h5>
-                                                    <h5 className="text-white">Mortgage Value: ${p.mortgageValue}</h5>
-                                                    <button className="btn btn-danger" onClick={() => mortgagaProperty(p)}>Mortgage</button>
-                                                </div>
-                                            )}
+                    <>
+                    <div>
+                        <style>
+                        {`
+                            .fortune-scroll::-webkit-scrollbar {
+                                width: 8px;
+                            }
+                            .fortune-scroll::-webkit-scrollbar-thumb {
+                                background-color: #555;
+                                border-radius: 4px;
+                            }
+                            .fortune-scroll::-webkit-scrollbar-track {
+                                background-color: #222;
+                            }
+                        `}
+                    </style>
+                    <div className="container h-50 w-100 position-absolute start-50 top-50 translate-middle overflow-y-scroll p-0 bg-dark fortune-scroll text-center" style={{zIndex: 99,}}>
+                        <div className="container m-0 d-flex flex-row">
+                        {popUp.data.ownedProps.map(p =>                            (
+                                <div className={`container text-center rounded h-100 w-100 m-2`} style={{backgroundColor: p.color}}>
+                                    <h3 className={` text-white`}>
+                                        {p.name}
+                                        <hr className="border border-white" />
+                                    </h3>
+                                    {p.isMortaged && (
+                                        <h2 className="border border-white text-white">
+                                            This property is already mortgaged
+                                        </h2>
+                                    )}
+                                    {!p.isMortaged && (
+                                        <div className="container border border-white">
+                                            <h5 className="text-white">Rent: ${p.baseRent}</h5>
+                                            {p.rentWithHouses.map((rents, index) => (
+                                                <h5 className="text-white">Rent with {index + 1} house/s: ${rents}</h5>
+                                            ))}
+                                            <h5 className="text-white">Rent with a hotel: ${p.rentWithHotel}</h5>
+                                            <h5 className="text-white">Cost of houses and hotel: ${p.houseCost}</h5>
+                                            <h5 className="text-white">Mortgage Value: ${p.mortgageValue}</h5>
+                                            <button className="btn btn-danger" onClick={() => mortgagaProperty(p)}>Mortgage</button>
                                         </div>
                                     )}
                                 </div>
-                            )}
-                        </div>
+                            ) 
+                        )}
                     </div>
+                    </div>
+                    </div>
+                    </>
+
+                    
                 )}
-                {cardPop.type === 'ml' && (
-                    <div className="container h-100">
-                        <div className="container border border-white bg-dark">
-                        {lifestyles[0] !== undefined || lifestyles[0] !== null && (
-                            <div className="container">
+                {cardPop.type === 'ml' && currentTurnUserID === userID &&(
+                    <div className="container top-50 position-absolute start-50 w-75 translate-middle" style={{zIndex: 99}}>
+                        <div className="container h-100 border border-white bg-dark">
+                        {lifestyles.length > 0 && (
+                            <div className="container text-center">
                                 <h2 className="text-white">Millionaire Lifestyle</h2>
                                 <hr className="border border-white" />
                                 <h3 className="text-white">{lifestyles[0].description}</h3>
-                                <button className="btn btn-secondary" onClick={() => handleCards(lifestyles[0])}>
+                                <button className="btn btn-secondary mb-2" onClick={() => handleCards(lifestyles[0])}>
                                     Accept
                                 </button>
                             </div>
 
                         )}
-                        {cardPop.type === 'space' && (
-                            <div className="container">
-                                {locations.map( l => 
-                                    <div className="container border border-white" onClick={() => {handleTurn(userID, 0, null, l); setCardPop({type: 'start'})}}>
-                                        <h3 className="text-white">
-                                            {l.name}
-                                        </h3>
-                                    </div>
-                                )}
-                            </div>
-                        )}
+                        </div>
+                    </div>
+                )}
+                {cardPop.type === 'space' && (
+                    <div className="container top-50  h-50 position-absolute start-50 w-75 translate-middle" style={{zIndex: 99}}>
+                        <style>
+                        {`
+                            .fortune-scroll::-webkit-scrollbar {
+                                width: 8px;
+                            }
+                            .fortune-scroll::-webkit-scrollbar-thumb {
+                                background-color: #555;
+                                border-radius: 4px;
+                            }
+                            .fortune-scroll::-webkit-scrollbar-track {
+                                background-color: #222;
+                            }
+                        `}
+                        </style>
+                        <div className="container h-100 border border-white bg-dark overflow-y-scroll text-center rounded fortune-scroll">
+                            {locations.map( l => 
+                                <div className="container border border-white my-1" onClick={() => {handleTurn(userID, 0, null, l); setCardPop({type: 'start'})}}>
+                                    <h3 className="text-white">
+                                        {l.name}
+                                    </h3>
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}
                 {popUp.type === 'fortunes' && (
-                    <div className="container h-25 w-100 position-absolute start-50 top-50 translate-middle" style={{zIndex: 99}}>
+                    <div className="container h-50 w-100 position-absolute start-50 top-50 translate-middle" style={{zIndex: 99}}>
                     <style>
                         {`
                             .fortune-scroll::-webkit-scrollbar {
@@ -1212,15 +1252,15 @@ const Game = () => {
                     </div>
                     </div>
                 )}
-                {cardPop.type === 'ch' && (
-                    <div className="container h-100">
-                        <div className="container border border-white bg-dark">
-                        {chances[0] !== undefined || chances[0] !== null && (
-                            <div className="container">
+                {cardPop.type === 'ch' && currentTurnUserID === userID && (
+                    <div className="container top-50 position-absolute start-50 w-75 translate-middle" style={{zIndex: 99}}>
+                        <div className="container h-100 border border-white bg-dark">
+                        {chances.length > 0 && (
+                            <div className="container text-center">
                                 <h2 className="text-white">Chance</h2>
                                 <hr className="border border-white" />
                                 <h3 className="text-white">{chances[0].description}</h3>
-                                <button className="btn btn-secondary" onClick={() => handleCards(chances[0])}>
+                                <button className="btn btn-secondary mb-2" onClick={() => handleCards(chances[0])}>
                                     Accept
                                 </button>
                             </div>
@@ -1229,10 +1269,10 @@ const Game = () => {
                         </div>
                     </div>
                 )}
-                {cardPop.type === 'pick' && (
+                {cardPop.type === 'pick' && currentTurnUserID === userID && (
                     <div className="container h-100 position-absolute start-50 w-75 h-75 translate-middle" style={{zIndex: 99}}>
                         {dbplayer.map(p => p.userID !== userID ? (
-                            <div className="container border border-white bg-dark" onClick={() => {cardUpdate({gameID, userID, val: cardPop.data.money, card: {actionType: cardPop.data.card.actionType, actionValue: 'takeOne'}, otherPlayer: p.userID}); cardRemoval({gameID, cards: (cardPop.data.card.type === 'fortune'? fortunes : chances), type: (cardPop.data.card.type === 'fortune'? 'fo' : 'ch')}); setCardPop({type: 'buy'})}}>
+                            <div className="container border border-white bg-dark" onClick={() => {cardUpdate({gameID, userID, val: cardPop.data.money, card: {actionType: cardPop.data.card.actionType, actionValue: cardPop.data.card.actionType === 'collect' ? 'takeOne' : cardPop.data.card.actionValue}, otherPlayer: p.userID}); cardRemoval({gameID, cards: (cardPop.data.card.type === 'fortune'? fortunes : chances), type: (cardPop.data.card.type === 'fortune'? 'fo' : 'ch')}); setCardPop({type: 'buy'})}}>
                                 <h2 className="text-white">{p.username}</h2>
                             </div>
                         ) : (
