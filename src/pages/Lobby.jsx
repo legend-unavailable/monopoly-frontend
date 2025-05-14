@@ -132,11 +132,7 @@ const Lobby = () => {
                 </div>
             </div>
 
-            <div className="card border-warning bg-warning bg-opacity-25 h-50 w-25">
-                <div className="card-body text-warning position-absolute start-50 top-50 translate-middle">
-                    <h2 className="card-title text-center">Shop</h2>
-                </div>
-            </div>
+            
         </div>
     );
 
