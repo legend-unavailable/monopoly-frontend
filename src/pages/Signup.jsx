@@ -1,7 +1,9 @@
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import React, { useState } from "react";
-import frontDesk from '../assets/reception.jpg'
+import frontDesk from '../assets/reception.jpg';
+const API_URL = import.meta.env.VITE_API_URL;
+
 
 const Signup = () => {
     const [userInfo, setUserInfo] = useState({email: '', password: '', username: '', confirmation: ''});
@@ -88,7 +90,7 @@ const Signup = () => {
             return;
         }
         try {
-            const res = await axios.post('http://localhost:3000/signup', userInfo);
+            const res = await axios.post(`${API_URL}/signup`, userInfo);
             if (res.data.alreadyExists){
                 setUserExists(true);
                 setEmailClass('form-control is-invalid');

@@ -2,6 +2,7 @@ import axios from "axios";
 import React, {useState, useContext, createContext} from "react";
 import { useNavigate } from "react-router-dom";
 import entrance from '../assets/entrance.jpg'
+const API_URL = import.meta.env.VITE_API_URL;
 
 
 const Login = () => {
@@ -40,7 +41,7 @@ const Login = () => {
         setEmailClass("form-control is-valid");
         setPasswordClass("form-control is-valid");
         try {
-            const res = await axios.post('http://localhost:3000/login', loginInfo, {
+            const res = await axios.post(`${API_URL}/login`, loginInfo, {
               withCredentials: true
             });
             

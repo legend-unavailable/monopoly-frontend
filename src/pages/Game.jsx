@@ -13,6 +13,8 @@ import boat from '../assets/boat.png';
 import plane from '../assets/plane.png';
 import { useSocket } from "../SocketContext";
 import styled from "@emotion/styled";
+const API_URL = import.meta.env.VITE_API_URL;
+
 
 
 const Game = () => {
@@ -65,7 +67,7 @@ const Game = () => {
     useEffect(() => {
         const getPlayersInfo = async() => {
             try {
-                const res = await axios.get(`http://localhost:3000/game?gameID=${gameID}`, {withCredentials: true});
+                const res = await axios.get(`${API_URL}/game?gameID=${gameID}`, {withCredentials: true});
                 if(res.data && res.data.players) {
                     setdbPlayers(res.data.players);
                     setProperties(res.data.properties);

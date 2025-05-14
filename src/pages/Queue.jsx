@@ -7,6 +7,7 @@ import boat from '../assets/boat.png'
 import { useEffect, useRef, useState } from 'react';
 import { useSocket } from '../SocketContext';
 import axios, { all } from 'axios';
+const API_URL = import.meta.env.VITE_API_URL;
 
 const Queue = () => {
     const [players, setPlayers] = useState([]);
@@ -27,7 +28,7 @@ const Queue = () => {
     useEffect(() => {
         const getSession = async() => {
             try {
-                const res = await axios.get('http://localhost:3000/lobby', {withCredentials: true});
+                const res = await axios.get(`${API_URL}/lobby`, {withCredentials: true});
                 if (res.data.authenticated) {
                     return;
                 }

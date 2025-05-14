@@ -3,6 +3,8 @@ import lobby from '../assets/cigarLounge.jpg';
 import { useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { useSocket } from '../SocketContext';
+const API_URL = import.meta.env.VITE_API_URL;
+
 
 
 const Lobby = () => {
@@ -26,7 +28,7 @@ const Lobby = () => {
     useEffect(() => {
         const getSession = async() => {
             try {
-                const res = await axios.get('http://localhost:3000/lobby', {withCredentials: true});
+                const res = await axios.get(`${API_URL}/lobby`, {withCredentials: true});
                 if (res.data.authenticated) {
                     const id = res.data.user.userID;                    
                     setNewRoom({...newRoom, hostID: res.data.user.userID, hostUsername: res.data.user.username});
@@ -44,7 +46,7 @@ const Lobby = () => {
     useEffect(() => {
         const rooms = async() => {
             try {
-                const res = await axios.get('http://localhost:3000/rooms', {withCredentials: true});
+                const res = await axios.get(`${API_URL}/rooms`, {withCredentials: true});
                 setUser(res.data.user);
                 setExistingRooms(res.data.rooms || []);
                 return;
@@ -59,7 +61,7 @@ const Lobby = () => {
     const handleSubmit = async(e) => {
         e.preventDefault();
         try {
-            const res = await axios.post('http://localhost:3000/lobby', newRoom, {withCredentials: true})
+            const res = await axios.post(`${API_URL}/lobby`, newRoom, {withCredentials: true})
             if (res.status === 201) {
                 joinGame({
                     gameID: res.data.game.id,
@@ -106,7 +108,7 @@ const Lobby = () => {
 
     const joinRoom = async(e, room) => {
         e.preventDefault();
-        const res = await axios.patch('http://localhost:3000/lobby', {userID: newRoom.hostID, username: newRoom.hostUsername, roomID: room.id}, {withCredentials: true})
+        const res = await axios.patch(`${API_URL}/lobby`, {userID: newRoom.hostID, username: newRoom.hostUsername, roomID: room.id}, {withCredentials: true})
         if (res.status === 200) {
             joinGame({
                 gameID: room.id,
