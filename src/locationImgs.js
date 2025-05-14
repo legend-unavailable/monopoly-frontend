@@ -20,7 +20,7 @@ import blingBeach from './assets/locations/blingBeach.jpg';
 import yachtHarbor from './assets/locations/yachtHarbor.jpg';
 import treetopRetreat from './assets/locations/treetopRetreat.jpg';
 import skiMountain from './assets/locations/skiMountain.jpeg';
-import flowerhills from './assets/locations/flowerhills.jpg';
+import flowerhills from './assets/locations/flowerHills.jpg';
 import fortuneValley from './assets/locations/fortuneValley.jpg';
 import paradiseIsland from './assets/locations/paradiseIsland.jpg';
 import go from './assets/locations/Go.jpg';
