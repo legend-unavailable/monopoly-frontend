@@ -12,7 +12,6 @@ import kart from '../assets/kart.png';
 import boat from '../assets/boat.png';
 import plane from '../assets/plane.png';
 import { useSocket } from "../SocketContext";
-import styled from "@emotion/styled";
 const API_URL = import.meta.env.VITE_API_URL;
 
 
