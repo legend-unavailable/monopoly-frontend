@@ -1,12 +1,13 @@
 import { createContext, useContext, useEffect, useRef } from "react";
 import { io } from "socket.io-client";
+const API_URL = import.meta.env.VITE_API_URL;
 
 const SocketContext = createContext(null);
 
 export const SocketProvider = ({children}) => {
     const socketRef = useRef(null);
     useEffect(() => {
-        socketRef.current = io('http://localhost:3000', {withCredentials: true});
+        socketRef.current = io(`${API_URL}`, {withCredentials: true});
         const socket = socketRef.current;
         socket.on('connect', () => {console.log('socket connected', socket.id);})
         socket.on('connect_error', (err) => {console.log('socket disconnected: ', err);})
